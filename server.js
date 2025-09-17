@@ -35,11 +35,12 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// CORS
+// CORS - Configuração mais permissiva
 app.use(cors({
-    origin: process.env.FRONTEND_URL || '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    origin: true, // Permite qualquer origem
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    credentials: true
 }));
 
 // Parse JSON

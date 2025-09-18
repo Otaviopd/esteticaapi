@@ -298,4 +298,85 @@ router.get('/inventory', async (req, res) => {
     }
 });
 
+// =====================================================
+// GET - Exportar relatório geral (Excel)
+// =====================================================
+router.get('/geral', async (req, res) => {
+    try {
+        // Dados básicos para relatório geral
+        const clientes = await query('SELECT * FROM clients ORDER BY full_name');
+        const agendamentos = await query(`
+            SELECT 
+                a.*, 
+                c.full_name as client_name,
+                s.name as service_name
+            FROM appointments a
+            LEFT JOIN clients c ON a.client_id = c.id
+            LEFT JOIN services s ON a.service_id = s.id
+            ORDER BY a.appointment_date DESC
+        `);
+        const servicos = await query('SELECT * FROM services ORDER BY name');
+        
+        res.json({
+            clientes: clientes.rows,
+            agendamentos: agendamentos.rows,
+            servicos: servicos.rows,
+            data_geracao: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('Erro ao gerar relatório geral:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// =====================================================
+// GET - Exportar relatório detalhado (Excel)
+// =====================================================
+router.get('/detalhado', async (req, res) => {
+    try {
+        // Relatório mais detalhado com estatísticas
+        const estatisticas = await query(`
+            SELECT 
+                (SELECT COUNT(*) FROM clients) as total_clientes,
+                (SELECT COUNT(*) FROM appointments) as total_agendamentos,
+                (SELECT COUNT(*) FROM services) as total_servicos,
+                (SELECT COUNT(*) FROM products) as total_produtos
+        `);
+        
+        const agendamentosPorMes = await query(`
+            SELECT 
+                EXTRACT(YEAR FROM appointment_date) as ano,
+                EXTRACT(MONTH FROM appointment_date) as mes,
+                COUNT(*) as total,
+                COUNT(CASE WHEN status = 'concluido' THEN 1 END) as concluidos
+            FROM appointments
+            GROUP BY EXTRACT(YEAR FROM appointment_date), EXTRACT(MONTH FROM appointment_date)
+            ORDER BY ano DESC, mes DESC
+        `);
+        
+        const clientesAtivos = await query(`
+            SELECT 
+                c.full_name,
+                c.email,
+                c.phone,
+                COUNT(a.id) as total_agendamentos,
+                MAX(a.appointment_date) as ultimo_agendamento
+            FROM clients c
+            LEFT JOIN appointments a ON c.id = a.client_id
+            GROUP BY c.id, c.full_name, c.email, c.phone
+            ORDER BY total_agendamentos DESC
+        `);
+        
+        res.json({
+            estatisticas: estatisticas.rows[0],
+            agendamentos_por_mes: agendamentosPorMes.rows,
+            clientes_ativos: clientesAtivos.rows,
+            data_geracao: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('Erro ao gerar relatório detalhado:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
 module.exports = router;

@@ -11,19 +11,23 @@ const router = express.Router();
 // =====================================================
 router.get('/stats', async (req, res) => {
     try {
-        const result = await query(`
-            SELECT 
-                (SELECT COUNT(*) FROM clients) as total_clientes,
-                (SELECT COUNT(*) FROM appointments) as total_agendamentos,
-                (SELECT COUNT(*) FROM services) as total_servicos,
-                (SELECT COUNT(*) FROM products) as total_produtos,
-                (SELECT COALESCE(SUM(total_price), 0) FROM appointments WHERE status = 'concluido') as receita_total
-        `);
+        // Queries mais simples e seguras
+        const clientesResult = await query('SELECT COUNT(*) as count FROM clients');
+        const agendamentosResult = await query('SELECT COUNT(*) as count FROM appointments');
+        const servicosResult = await query('SELECT COUNT(*) as count FROM services');
+        const produtosResult = await query('SELECT COUNT(*) as count FROM products');
         
-        res.json(result.rows[0]);
+        res.json({
+            total_clientes: parseInt(clientesResult.rows[0].count) || 0,
+            total_agendamentos: parseInt(agendamentosResult.rows[0].count) || 0,
+            total_servicos: parseInt(servicosResult.rows[0].count) || 0,
+            total_produtos: parseInt(produtosResult.rows[0].count) || 0,
+            receita_total: 0 // Será calculado depois
+        });
     } catch (error) {
         console.error('Erro ao buscar estatísticas:', error);
-        res.status(500).json({ error: 'Erro interno do servidor' });
+        console.error('Detalhes do erro:', error.message);
+        res.status(500).json({ error: 'Erro interno do servidor', details: error.message });
     }
 });
 

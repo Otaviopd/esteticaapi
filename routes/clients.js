@@ -176,23 +176,35 @@ router.delete('/:id', async (req, res) => {
     try {
         const { id } = req.params;
         
+        // Verificar se cliente existe
+        const clientCheck = await query('SELECT id FROM clients WHERE id = $1', [id]);
+        if (clientCheck.rows.length === 0) {
+            return res.status(404).json({ error: 'Cliente não encontrado' });
+        }
+        
         // Verificar se cliente tem agendamentos
         const appointmentsCheck = await query(
             'SELECT COUNT(*) FROM appointments WHERE client_id = $1',
             [id]
         );
         
-        if (parseInt(appointmentsCheck.rows[0].count) > 0) {
-            return res.status(400).json({ 
-                error: 'Não é possível excluir cliente com agendamentos' 
+        const appointmentCount = parseInt(appointmentsCheck.rows[0].count) || 0;
+        
+        if (appointmentCount > 0) {
+            // Em vez de bloquear, vamos marcar como inativo
+            const result = await query(
+                'UPDATE clients SET active = false WHERE id = $1 RETURNING *',
+                [id]
+            );
+            
+            return res.json({ 
+                message: `Cliente desativado com sucesso (${appointmentCount} agendamentos encontrados)`,
+                client: result.rows[0]
             });
         }
         
+        // Se não tem agendamentos, pode excluir
         const result = await query('DELETE FROM clients WHERE id = $1 RETURNING id', [id]);
-        
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Cliente não encontrado' });
-        }
         
         res.json({ message: 'Cliente removido com sucesso' });
     } catch (error) {

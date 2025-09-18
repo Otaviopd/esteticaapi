@@ -283,6 +283,36 @@ router.delete('/:id', async (req, res) => {
 });
 
 // =====================================================
+// GET - Agendamentos por mês
+// =====================================================
+router.get('/mes/:ano/:mes', async (req, res) => {
+    try {
+        const { ano, mes } = req.params;
+        
+        const result = await query(
+            `SELECT 
+                a.id, a.appointment_date, a.appointment_time, a.status,
+                a.observations, a.total_price,
+                c.full_name as client_name, c.phone as client_phone,
+                s.name as service_name, s.duration_minutes
+            FROM appointments a
+            JOIN clients c ON a.client_id = c.id
+            JOIN services s ON a.service_id = s.id
+            WHERE EXTRACT(YEAR FROM a.appointment_date) = $1
+            AND EXTRACT(MONTH FROM a.appointment_date) = $2
+            AND a.status NOT IN ('cancelado')
+            ORDER BY a.appointment_date ASC, a.appointment_time ASC`,
+            [ano, mes]
+        );
+        
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Erro ao buscar agendamentos do mês:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// =====================================================
 // GET - Agenda do dia
 // =====================================================
 router.get('/agenda/:date', async (req, res) => {

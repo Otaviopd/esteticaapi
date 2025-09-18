@@ -35,13 +35,41 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// CORS - Configuração mais permissiva
+// CORS - Configuração específica para desenvolvimento
+const allowedOrigins = [
+    'http://127.0.0.1:5500',
+    'http://localhost:5500',
+    'http://127.0.0.1:3000',
+    'http://localhost:3000',
+    'https://estetica-fabiane.netlify.app' // Para produção futura
+];
+
 app.use(cors({
-    origin: true, // Permite qualquer origem
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-    credentials: true
+    origin: function(origin, callback) {
+        // Permite requisições sem origin (Postman, apps mobile, etc.)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        } else {
+            console.log('❌ CORS bloqueado para origem:', origin);
+            return callback(new Error('Não permitido pelo CORS'), false);
+        }
+    },
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    credentials: true,
+    optionsSuccessStatus: 200 // Para suportar navegadores legados
 }));
+
+// Middleware adicional para OPTIONS
+app.options('*', (req, res) => {
+    res.header('Access-Control-Allow-Origin', req.headers.origin);
+    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With,Accept');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.sendStatus(200);
+});
 
 // Parse JSON
 app.use(express.json({ limit: '10mb' }));

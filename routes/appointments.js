@@ -75,6 +75,32 @@ router.get('/', async (req, res) => {
 });
 
 // =====================================================
+// GET - Próximos agendamentos (DEVE VIR ANTES da rota /:id)
+// =====================================================
+router.get('/proximos', async (req, res) => {
+    try {
+        const result = await query(
+            `SELECT 
+                a.id, a.appointment_date, a.appointment_time, a.status,
+                a.observations, a.total_price,
+                c.full_name as cliente_nome, c.phone as client_phone,
+                s.name as servico_nome, s.duration_minutes, s.price as preco
+            FROM appointments a
+            JOIN clients c ON a.client_id = c.id
+            JOIN services s ON a.service_id = s.id
+            WHERE a.appointment_date = CURRENT_DATE
+            AND a.status IN ('agendado', 'confirmado')
+            ORDER BY a.appointment_time ASC`
+        );
+        
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Erro ao buscar próximos agendamentos:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// =====================================================
 // GET - Buscar agendamento por ID
 // =====================================================
 router.get('/:id', async (req, res) => {

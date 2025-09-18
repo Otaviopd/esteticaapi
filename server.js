@@ -44,22 +44,13 @@ const allowedOrigins = [
     'https://estetica-fabiane.netlify.app' // Para produção futura
 ];
 
+// CORS mais permissivo para desenvolvimento
 app.use(cors({
-    origin: function(origin, callback) {
-        // Permite requisições sem origin (Postman, apps mobile, etc.)
-        if (!origin) return callback(null, true);
-        
-        if (allowedOrigins.includes(origin)) {
-            return callback(null, true);
-        } else {
-            console.log('❌ CORS bloqueado para origem:', origin);
-            return callback(new Error('Não permitido pelo CORS'), false);
-        }
-    },
+    origin: '*', // Permite todas as origens
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-    credentials: true,
-    optionsSuccessStatus: 200 // Para suportar navegadores legados
+    credentials: false,
+    optionsSuccessStatus: 200
 }));
 
 // Middleware adicional para OPTIONS

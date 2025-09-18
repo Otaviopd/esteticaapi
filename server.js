@@ -95,6 +95,7 @@ app.use('/api/servicos', servicesRoutes);
 app.use('/api/produtos', productsRoutes);
 app.use('/api/agendamentos', appointmentsRoutes);
 app.use('/api/relatorios', reportsRoutes);
+app.use('/api/dashboard', require('./routes/dashboard'));
 
 // =====================================================
 // MIDDLEWARE DE ERRO

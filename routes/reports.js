@@ -7,6 +7,27 @@ const { query } = require('../config/database');
 const router = express.Router();
 
 // =====================================================
+// GET - Estatísticas básicas para relatórios
+// =====================================================
+router.get('/stats', async (req, res) => {
+    try {
+        const result = await query(`
+            SELECT 
+                (SELECT COUNT(*) FROM clients) as total_clientes,
+                (SELECT COUNT(*) FROM appointments) as total_agendamentos,
+                (SELECT COUNT(*) FROM services) as total_servicos,
+                (SELECT COUNT(*) FROM products) as total_produtos,
+                (SELECT COALESCE(SUM(total_price), 0) FROM appointments WHERE status = 'concluido') as receita_total
+        `);
+        
+        res.json(result.rows[0]);
+    } catch (error) {
+        console.error('Erro ao buscar estatísticas:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// =====================================================
 // GET - Dashboard com estatísticas gerais
 // =====================================================
 router.get('/dashboard', async (req, res) => {

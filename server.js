@@ -90,11 +90,11 @@ app.get('/', (req, res) => {
 });
 
 // Rotas da API
-app.use('/api/clients', clientsRoutes);
-app.use('/api/services', servicesRoutes);
-app.use('/api/products', productsRoutes);
-app.use('/api/appointments', appointmentsRoutes);
-app.use('/api/reports', reportsRoutes);
+app.use('/api/clientes', clientsRoutes);
+app.use('/api/servicos', servicesRoutes);
+app.use('/api/produtos', productsRoutes);
+app.use('/api/agendamentos', appointmentsRoutes);
+app.use('/api/relatorios', reportsRoutes);
 
 // =====================================================
 // MIDDLEWARE DE ERRO

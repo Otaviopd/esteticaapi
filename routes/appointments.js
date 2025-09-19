@@ -135,23 +135,107 @@ router.get('/:id', async (req, res) => {
 // =====================================================
 router.post('/fix-fk', async (req, res) => {
     try {
-        console.log('🔧 Tentando remover foreign key constraint...');
+        console.log('🔧 REMOVENDO TODAS AS FOREIGN KEYS...');
         
-        // Tentar remover a constraint
-        await query('ALTER TABLE appointments DROP CONSTRAINT IF EXISTS appointments_service_id_fkey');
+        const queries = [
+            'ALTER TABLE appointments DROP CONSTRAINT IF EXISTS appointments_service_id_fkey',
+            'ALTER TABLE appointments DROP CONSTRAINT IF EXISTS fk_appointments_service',
+            'ALTER TABLE appointments DROP CONSTRAINT IF EXISTS appointments_service_fkey',
+            'ALTER TABLE appointments DROP CONSTRAINT IF EXISTS fk_service_id'
+        ];
         
-        console.log('✅ Foreign key constraint removida (se existia)');
+        const results = [];
+        
+        for (const sql of queries) {
+            try {
+                await query(sql);
+                results.push(`✅ ${sql}`);
+                console.log(`✅ Executado: ${sql}`);
+            } catch (err) {
+                results.push(`⚠️ ${sql} - ${err.message}`);
+                console.log(`⚠️ ${sql} - ${err.message}`);
+            }
+        }
+        
+        // Verificar constraints restantes
+        const constraints = await query(`
+            SELECT constraint_name, table_name 
+            FROM information_schema.table_constraints 
+            WHERE table_name = 'appointments' 
+            AND constraint_type = 'FOREIGN KEY'
+        `);
+        
+        console.log('🔍 Constraints restantes:', constraints.rows);
         
         res.json({
             success: true,
-            message: 'Foreign key constraint removida com sucesso!'
+            message: 'Tentativa de remoção de FK concluída!',
+            results: results,
+            constraints_restantes: constraints.rows
         });
         
     } catch (error) {
-        console.log('⚠️ Erro ao remover FK (pode não existir):', error.message);
-        res.json({
+        console.error('❌ Erro geral:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// =====================================================
+// POST - CRIAR AGENDAMENTO SEM FOREIGN KEY
+// =====================================================
+router.post('/safe', async (req, res) => {
+    console.log('🚀 CRIANDO AGENDAMENTO SEGURO - Dados recebidos:', req.body);
+    
+    try {
+        const {
+            client_id,
+            service_id,
+            appointment_date,
+            appointment_time,
+            observations,
+            total_price
+        } = req.body;
+        
+        // Validações simples
+        if (!client_id || !service_id || !appointment_date || !appointment_time) {
+            return res.status(400).json({ 
+                error: 'Dados obrigatórios faltando',
+                recebido: { client_id, service_id, appointment_date, appointment_time }
+            });
+        }
+        
+        // Inserir direto sem validações de FK
+        const result = await query(`
+            INSERT INTO appointments 
+            (client_id, service_id, appointment_date, appointment_time, observations, total_price, status, created_at) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW()) 
+            RETURNING *
+        `, [
+            parseInt(client_id),
+            parseInt(service_id), 
+            appointment_date,
+            appointment_time,
+            observations || '',
+            parseFloat(total_price || 120.00),
+            'agendado'
+        ]);
+        
+        console.log('✅ Agendamento criado com sucesso!');
+        
+        res.status(201).json({
             success: true,
-            message: 'FK pode não existir, continuando...'
+            message: 'Agendamento criado com sucesso!',
+            agendamento: result.rows[0]
+        });
+        
+    } catch (error) {
+        console.error('💥 Erro ao criar agendamento seguro:', error);
+        res.status(500).json({ 
+            error: 'Erro interno do servidor',
+            detalhes: error.message
         });
     }
 });

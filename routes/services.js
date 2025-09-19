@@ -100,13 +100,12 @@ router.post('/', async (req, res) => {
         
         console.log('Dados recebidos:', { name, description, category, duration_minutes, price, status });
         
-        // Tentar inserção mais simples primeiro
+        // Tentar com campos básicos apenas
         const result = await query(
-            `INSERT INTO services 
-             (name, category, price, duration_minutes, description, status)
-             VALUES ($1, $2, $3, $4, $5, $6)
+            `INSERT INTO services (name, category, price) 
+             VALUES ($1, $2, $3) 
              RETURNING *`,
-            [name, category, price, duration_minutes || 60, description || '', status]
+            [name, category, price]
         );
         
         res.status(201).json(result.rows[0]);

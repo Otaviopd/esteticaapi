@@ -66,19 +66,103 @@ const SERVICOS_ESTETICA = [
 // =====================================================
 // GET - LISTAR SERVIÇOS (ROTA PRINCIPAL)
 // =====================================================
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
     try {
-        // Adicionar timestamps dinâmicos
-        const servicosComTimestamp = SERVICOS_ESTETICA.map(servico => ({
-            ...servico,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-        }));
+        console.log('🔍 GET /servicos - Verificando banco...');
         
-        res.status(200).json(servicosComTimestamp);
+        // PRIMEIRO: Garantir que os serviços existem no banco
+        await garantirServicosNoBanco();
+        
+        // SEGUNDO: Buscar do banco
+        const result = await query(`
+            SELECT id, name, description, category, duration_minutes, 
+                   price, status, created_at, updated_at
+            FROM services 
+            ORDER BY id ASC
+        `);
+        
+        if (result.rows.length > 0) {
+            console.log('✅ Retornando', result.rows.length, 'serviços do banco');
+            res.status(200).json(result.rows);
+        } else {
+            console.log('⚠️ Banco vazio, retornando serviços fixos');
+            res.status(200).json(SERVICOS_ESTETICA);
+        }
+        
     } catch (error) {
+        console.error('❌ Erro ao buscar serviços:', error);
         // Fallback absoluto - nunca falha
         res.status(200).json(SERVICOS_ESTETICA);
+    }
+});
+
+// =====================================================
+// FUNÇÃO PARA GARANTIR SERVIÇOS NO BANCO
+// =====================================================
+async function garantirServicosNoBanco() {
+    try {
+        console.log('🔍 Verificando serviços no banco...');
+        
+        // Verificar quantos serviços existem
+        const countResult = await query('SELECT COUNT(*) as count FROM services');
+        const count = parseInt(countResult.rows[0].count);
+        
+        console.log('📊 Serviços no banco:', count);
+        
+        if (count < 6) {
+            console.log('🛠️ Inserindo/atualizando serviços...');
+            
+            // Limpar tabela
+            await query('DELETE FROM services');
+            
+            // Inserir serviços com IDs específicos
+            for (const servico of SERVICOS_ESTETICA) {
+                await query(`
+                    INSERT INTO services (id, name, category, price, duration_minutes, description, status) 
+                    VALUES ($1, $2, $3, $4, $5, $6, $7)
+                `, [
+                    servico.id,
+                    servico.name,
+                    servico.category,
+                    servico.price,
+                    servico.duration_minutes,
+                    servico.description,
+                    servico.status
+                ]);
+            }
+            
+            console.log('✅ Serviços inseridos no banco com IDs corretos!');
+        } else {
+            console.log('✅ Serviços já existem no banco');
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro ao garantir serviços no banco:', error);
+        throw error;
+    }
+}
+
+// =====================================================
+// POST - FORÇAR CRIAÇÃO DOS SERVIÇOS
+// =====================================================
+router.post('/force-create', async (req, res) => {
+    try {
+        console.log('🔥 FORÇANDO criação dos serviços...');
+        
+        await garantirServicosNoBanco();
+        
+        const result = await query('SELECT * FROM services ORDER BY id ASC');
+        
+        res.json({
+            success: true,
+            message: 'Serviços criados/atualizados com sucesso!',
+            servicos: result.rows,
+            total: result.rows.length
+        });
+        
+    } catch (error) {
+        console.error('❌ Erro ao forçar criação:', error);
+        res.status(500).json({ error: error.message });
     }
 });
 

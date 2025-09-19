@@ -19,9 +19,12 @@ router.get('/', async (req, res) => {
         
         console.log('📊 Serviços no banco:', count);
         
-        // Se não há serviços no banco, inserir os 6 serviços
-        if (count === 0) {
-            console.log('🔨 Inserindo serviços no banco...');
+        // Se há menos de 6 serviços, limpar e inserir os 6 corretos
+        if (count < 6) {
+            console.log('🗑️ Limpando tabela de serviços...');
+            await query('DELETE FROM services');
+            
+            console.log('🔨 Inserindo os 6 serviços corretos...');
             
             const servicosParaInserir = [
                 { name: 'Limpeza de Pele', category: 'Estética Facial', price: 120.00, duration_minutes: 60, description: 'Limpeza profunda da pele facial', status: 'ativo' },

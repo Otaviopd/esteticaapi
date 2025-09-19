@@ -11,26 +11,83 @@ const router = express.Router();
 // =====================================================
 router.get('/', async (req, res) => {
     try {
-        console.log('🔍 GET /servicos chamado');
+        console.log('🔍 GET /servicos chamado - Retornando serviços fixos');
         
-        // Query mais simples para debug
-        const queryText = `
-            SELECT 
-                id, name, description, category, duration_minutes, 
-                price, status, created_at, updated_at
-            FROM services
-            ORDER BY name ASC
-        `;
+        // Serviços fixos da Estética Fabiane
+        const servicosFixos = [
+            {
+                id: 1,
+                name: 'Limpeza de Pele',
+                category: 'Estética Facial',
+                price: 120.00,
+                duration_minutes: 60,
+                description: 'Limpeza profunda da pele facial',
+                status: 'ativo',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            },
+            {
+                id: 2,
+                name: 'Massagem Relaxante',
+                category: 'Massagem',
+                price: 120.00,
+                duration_minutes: 60,
+                description: 'Massagem relaxante para alívio do stress',
+                status: 'ativo',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            },
+            {
+                id: 3,
+                name: 'Pós Operatório Domiciliar 10 sessões com laser',
+                category: 'Pós Operatório',
+                price: 1300.00,
+                duration_minutes: 90,
+                description: 'Pacote completo de 10 sessões pós operatório com laser domiciliar',
+                status: 'ativo',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            },
+            {
+                id: 4,
+                name: 'Pós Operatório com Kinesio',
+                category: 'Pós Operatório',
+                price: 1500.00,
+                duration_minutes: 120,
+                description: 'Tratamento pós operatório com aplicação de kinesio',
+                status: 'ativo',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            },
+            {
+                id: 5,
+                name: 'Pacote Simples - 4 sessões de Massagem',
+                category: 'Pacotes',
+                price: 450.00,
+                duration_minutes: 240,
+                description: 'Pacote com 4 sessões de massagem. Benefícios: Reduz medidas, diminui inchaços, estimula circulação, alivia estresse, relaxa o corpo, melhora silhueta. Validade: 60 dias',
+                status: 'ativo',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            },
+            {
+                id: 6,
+                name: 'Pacote Premium - 10 sessões de Massagem',
+                category: 'Pacotes',
+                price: 800.00,
+                duration_minutes: 600,
+                description: 'Pacote premium com 10 sessões de massagem. Benefícios: Reduz medidas, diminui inchaços, estimula circulação, alivia estresse, relaxa o corpo, melhora silhueta. Validade: 60 dias',
+                status: 'ativo',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            }
+        ];
         
-        console.log('📝 Query SQL:', queryText);
+        console.log('📊 Retornando', servicosFixos.length, 'serviços fixos');
+        res.json(servicosFixos);
         
-        const result = await query(queryText);
-        console.log('📊 Resultado da query:', result.rows);
-        console.log('🔢 Quantidade encontrada:', result.rows.length);
-        
-        res.json(result.rows);
     } catch (error) {
-        console.error('Erro ao buscar serviços:', error);
+        console.error('Erro ao retornar serviços:', error);
         res.status(500).json({ error: 'Erro interno do servidor' });
     }
 });

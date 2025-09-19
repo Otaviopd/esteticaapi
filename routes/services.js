@@ -14,10 +14,18 @@ router.get('/', async (req, res) => {
         console.log('🔍 GET /servicos chamado');
         
         // Primeiro, verificar se os serviços existem no banco
-        let result = await query('SELECT COUNT(*) as count FROM services');
-        const count = parseInt(result.rows[0].count);
-        
-        console.log('📊 Serviços no banco:', count);
+        console.log('🔍 Verificando se tabela services existe...');
+        let result;
+        let count = 0;
+        try {
+            result = await query('SELECT COUNT(*) as count FROM services');
+            count = parseInt(result.rows[0].count);
+            console.log('📊 Serviços no banco:', count);
+        } catch (tableError) {
+            console.error('❌ Erro ao acessar tabela services:', tableError.message);
+            // Se a tabela não existe, retornar array vazio
+            return res.json([]);
+        }
         
         // Se há menos de 6 serviços, limpar e inserir os 6 corretos
         if (count < 6) {

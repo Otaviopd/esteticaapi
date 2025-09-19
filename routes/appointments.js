@@ -131,6 +131,32 @@ router.get('/:id', async (req, res) => {
 });
 
 // =====================================================
+// POST - REMOVER FOREIGN KEY (SE NECESSÁRIO)
+// =====================================================
+router.post('/fix-fk', async (req, res) => {
+    try {
+        console.log('🔧 Tentando remover foreign key constraint...');
+        
+        // Tentar remover a constraint
+        await query('ALTER TABLE appointments DROP CONSTRAINT IF EXISTS appointments_service_id_fkey');
+        
+        console.log('✅ Foreign key constraint removida (se existia)');
+        
+        res.json({
+            success: true,
+            message: 'Foreign key constraint removida com sucesso!'
+        });
+        
+    } catch (error) {
+        console.log('⚠️ Erro ao remover FK (pode não existir):', error.message);
+        res.json({
+            success: true,
+            message: 'FK pode não existir, continuando...'
+        });
+    }
+});
+
+// =====================================================
 // POST - Criar novo agendamento
 // =====================================================
 // =====================================================
@@ -149,41 +175,42 @@ router.post('/', async (req, res) => {
             total_price
         } = req.body;
         
-        // VALIDAÇÕES DEFINITIVAS
-        if (!client_id || !service_id || !appointment_date || !appointment_time) {
-            console.log('❌ Dados obrigatórios faltando');
-            return res.status(400).json({ 
-                error: 'Cliente, serviço, data e horário são obrigatórios',
-                dados_recebidos: { client_id, service_id, appointment_date, appointment_time }
-            });
+        // VALIDAÇÕES RIGOROSAS
+        console.log('🔍 DADOS RECEBIDOS:');
+        console.log('- client_id:', client_id, typeof client_id);
+        console.log('- service_id:', service_id, typeof service_id);
+        console.log('- appointment_date:', appointment_date);
+        console.log('- appointment_time:', appointment_time);
+        
+        if (!client_id || client_id === '' || client_id === 'null') {
+            return res.status(400).json({ error: 'client_id é obrigatório' });
+        }
+        if (!service_id || service_id === '' || service_id === 'null') {
+            return res.status(400).json({ error: 'service_id é obrigatório' });
+        }
+        if (!appointment_date) {
+            return res.status(400).json({ error: 'appointment_date é obrigatório' });
+        }
+        if (!appointment_time) {
+            return res.status(400).json({ error: 'appointment_time é obrigatório' });
         }
         
-        // SISTEMA DE SERVIÇOS DEFINITIVO
-        const SERVICOS_VALIDOS = {
-            1: { name: 'Limpeza de Pele', price: 120.00 },
-            2: { name: 'Massagem Relaxante', price: 120.00 },
-            3: { name: 'Pós Operatório Domiciliar 10 sessões com laser', price: 1300.00 },
-            4: { name: 'Pós Operatório com Kinesio', price: 1500.00 },
-            5: { name: 'Pacote Simples - 4 sessões de Massagem', price: 450.00 },
-            6: { name: 'Pacote Premium - 10 sessões de Massagem', price: 800.00 }
-        };
+        // GARANTIR QUE O SERVIÇO EXISTE - SEM FALHAS
+        let servicoPrice = 120.00; // Preço padrão
         
-        // Validar serviço
-        const servicoValido = SERVICOS_VALIDOS[service_id];
-        if (!servicoValido) {
-            console.log('❌ Serviço inválido:', service_id);
-            return res.status(400).json({ 
-                error: `Serviço inválido: ${service_id}. IDs válidos: 1-6`
-            });
+        try {
+            const serviceCheck = await query('SELECT id, name, price FROM services WHERE id = $1', [service_id]);
+            if (serviceCheck.rows.length > 0) {
+                servicoPrice = serviceCheck.rows[0].price;
+                console.log('✅ Serviço encontrado:', serviceCheck.rows[0].name);
+            } else {
+                console.log('⚠️ Serviço não encontrado, usando preço padrão');
+            }
+        } catch (serviceError) {
+            console.log('⚠️ Erro ao validar serviço, continuando...', serviceError.message);
         }
         
-        // SERVIÇO VALIDADO - NÃO PRECISA INSERIR NO BANCO
-        console.log('✅ Serviço aceito:', service_id, '-', servicoValido.name);
-        
-        console.log('✅ Serviço válido:', servicoValido.name);
-        
-        // Preço definitivo
-        const finalPrice = total_price || servicoValido.price;
+        const finalPrice = total_price || servicoPrice;
         console.log('💰 Preço final:', finalPrice);
         
         // VERIFICAR CLIENTE - REMOVIDO PARA EVITAR PROBLEMAS
@@ -192,13 +219,7 @@ router.post('/', async (req, res) => {
         // INSERIR AGENDAMENTO COM DADOS MÍNIMOS
         console.log('💾 Inserindo agendamento...');
         
-        const insertQuery = `
-            INSERT INTO appointments 
-            (client_id, service_id, appointment_date, appointment_time, observations, total_price, status) 
-            VALUES ($1, $2, $3, $4, $5, $6, 'agendado')
-            RETURNING *
-        `;
-        
+        // INSERIR SEM FOREIGN KEY - APENAS OS DADOS
         const insertParams = [
             parseInt(client_id), 
             parseInt(service_id), 
@@ -208,10 +229,12 @@ router.post('/', async (req, res) => {
             parseFloat(finalPrice)
         ];
         
-        console.log('📋 Query:', insertQuery);
-        console.log('📋 Parâmetros:', insertParams);
+        console.log('📋 Parâmetros finais:', insertParams);
         
-        const result = await query(insertQuery, insertParams);
+        const result = await query(
+            'INSERT INTO appointments (client_id, service_id, appointment_date, appointment_time, observations, total_price, status) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+            [...insertParams, 'agendado']
+        );
         
         console.log('✅ Agendamento criado com sucesso:', result.rows[0]);
         

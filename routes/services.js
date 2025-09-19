@@ -141,15 +141,16 @@ async function garantirServicosNoBanco() {
 }
 
 // =====================================================
-// GET - TESTE SIMPLES
+// GET - LISTAR IDs REAIS DOS SERVIÇOS
 // =====================================================
-router.get('/test-db', async (req, res) => {
+router.get('/ids', async (req, res) => {
     try {
-        const result = await query('SELECT NOW() as timestamp, version() as version');
+        const result = await query('SELECT id, name FROM services ORDER BY id ASC');
         res.json({
             success: true,
-            message: 'Conexão com banco funcionando!',
-            data: result.rows[0]
+            message: 'IDs reais dos serviços:',
+            servicos: result.rows,
+            total: result.rows.length
         });
     } catch (error) {
         res.status(500).json({

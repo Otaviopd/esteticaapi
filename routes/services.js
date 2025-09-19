@@ -11,35 +11,22 @@ const router = express.Router();
 // =====================================================
 router.get('/', async (req, res) => {
     try {
-        const { category, status = 'ativo' } = req.query;
+        console.log('🔍 GET /servicos chamado');
         
-        let queryText = `
+        // Query mais simples para debug
+        const queryText = `
             SELECT 
                 id, name, description, category, duration_minutes, 
                 price, status, created_at, updated_at
             FROM services
+            ORDER BY name ASC
         `;
-        let queryParams = [];
-        let conditions = [];
         
-        // Filtros
-        if (status && status !== 'all') {
-            conditions.push(`status = $${queryParams.length + 1}`);
-            queryParams.push(status);
-        }
+        console.log('📝 Query SQL:', queryText);
         
-        if (category) {
-            conditions.push(`category = $${queryParams.length + 1}`);
-            queryParams.push(category);
-        }
-        
-        if (conditions.length > 0) {
-            queryText += ` WHERE ${conditions.join(' AND ')}`;
-        }
-        
-        queryText += ` ORDER BY name ASC`;
-        
-        const result = await query(queryText, queryParams);
+        const result = await query(queryText);
+        console.log('📊 Resultado da query:', result.rows);
+        console.log('🔢 Quantidade encontrada:', result.rows.length);
         
         res.json(result.rows);
     } catch (error) {

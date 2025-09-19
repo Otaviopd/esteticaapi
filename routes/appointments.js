@@ -177,21 +177,12 @@ router.post('/', async (req, res) => {
             });
         }
         
-        // GARANTIR QUE O SERVIÇO EXISTE NO BANCO
+        // GARANTIR QUE O SERVIÇO EXISTE NO BANCO (SIMPLIFICADO)
         try {
-            await query(`
-                INSERT INTO services (id, name, category, price, duration_minutes, description, status) 
-                VALUES ($1, $2, $3, $4, $5, $6, $7)
-                ON CONFLICT (id) DO NOTHING
-            `, [
-                service_id,
-                servicoValido.name,
-                'Categoria',
-                servicoValido.price,
-                60,
-                'Descrição',
-                'ativo'
-            ]);
+            await query(
+                'INSERT INTO services (name, category, price, duration_minutes, description, status) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING',
+                [servicoValido.name, 'Categoria', servicoValido.price, 60, 'Descrição', 'ativo']
+            );
             console.log('✅ Serviço garantido no banco:', service_id);
         } catch (serviceError) {
             console.log('⚠️ Erro ao garantir serviço, continuando...', serviceError.message);

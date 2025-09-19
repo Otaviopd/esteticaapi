@@ -100,12 +100,12 @@ router.post('/', async (req, res) => {
         
         console.log('Dados recebidos:', { name, description, category, duration_minutes, price, status });
         
-        // Tentar com campos básicos apenas
+        // Tentar inserção com valores seguros
         const result = await query(
-            `INSERT INTO services (name, category, price) 
-             VALUES ($1, $2, $3) 
+            `INSERT INTO services (name, category, price, duration_minutes, description, status, created_at, updated_at) 
+             VALUES ($1, $2::text, $3, $4, $5, $6, NOW(), NOW()) 
              RETURNING *`,
-            [name, category, price]
+            [name, category, price, duration_minutes || 60, description || '', status]
         );
         
         res.status(201).json(result.rows[0]);

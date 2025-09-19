@@ -191,10 +191,10 @@ router.delete('/:id', async (req, res) => {
         const appointmentCount = parseInt(appointmentsCheck.rows[0].count) || 0;
         
         if (appointmentCount > 0) {
-            // Não pode excluir cliente com agendamentos - retornar erro explicativo
+            // Não pode excluir cliente com agendamentos
             return res.status(400).json({ 
-                error: `Não é possível excluir cliente com ${appointmentCount} agendamento(s). Cancele os agendamentos primeiro.`,
-                appointmentCount: appointmentCount
+                error: 'Cliente possui agendamentos e não pode ser excluído',
+                message: 'Cliente possui agendamentos e não pode ser excluído'
             });
         }
         

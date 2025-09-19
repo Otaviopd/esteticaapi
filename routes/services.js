@@ -218,6 +218,10 @@ router.get('/:id/stats', async (req, res) => {
 // =====================================================
 router.post('/populate', async (req, res) => {
     try {
+        // Limpar tabela primeiro
+        console.log('🗑️ Limpando tabela de serviços...');
+        await query('DELETE FROM services');
+        
         const servicosEstetica = [
             {
                 name: 'Limpeza de Pele',
@@ -272,17 +276,15 @@ router.post('/populate', async (req, res) => {
         const servicosInseridos = [];
         
         for (const servico of servicosEstetica) {
-            try {
-                const result = await query(
-                    `INSERT INTO services (name, category, price, duration_minutes, description, status, created_at, updated_at) 
-                     VALUES ($1, $2::text, $3, $4, $5, $6, NOW(), NOW()) 
-                     RETURNING *`,
-                    [servico.name, servico.category, servico.price, servico.duration_minutes, servico.description, servico.status]
-                );
-                servicosInseridos.push(result.rows[0]);
-            } catch (error) {
-                console.log(`Serviço ${servico.name} já existe ou erro:`, error.message);
-            }
+            console.log(`➕ Inserindo: ${servico.name}`);
+            const result = await query(
+                `INSERT INTO services (name, category, price, duration_minutes, description, status) 
+                 VALUES ($1, $2, $3, $4, $5, $6) 
+                 RETURNING *`,
+                [servico.name, servico.category, servico.price, servico.duration_minutes, servico.description, servico.status]
+            );
+            servicosInseridos.push(result.rows[0]);
+            console.log(`✅ Inserido: ${result.rows[0].name}`);
         }
 
         res.json({

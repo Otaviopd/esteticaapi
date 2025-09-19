@@ -3,6 +3,7 @@
 // =====================================================
 
 const express = require('express');
+const { query } = require('../config/database');
 const router = express.Router();
 
 // SERVIÇOS FIXOS DA ESTÉTICA FABIANE - DADOS DEFINITIVOS
@@ -117,18 +118,15 @@ async function garantirServicosNoBanco() {
             
             // Inserir serviços com IDs específicos
             for (const servico of SERVICOS_ESTETICA) {
-                await query(`
-                    INSERT INTO services (id, name, category, price, duration_minutes, description, status) 
-                    VALUES ($1, $2, $3, $4, $5, $6, $7)
-                `, [
-                    servico.id,
-                    servico.name,
-                    servico.category,
-                    servico.price,
-                    servico.duration_minutes,
-                    servico.description,
-                    servico.status
-                ]);
+                try {
+                    await query(
+                        'INSERT INTO services (name, category, price, duration_minutes, description, status) VALUES ($1, $2, $3, $4, $5, $6)',
+                        [servico.name, servico.category, servico.price, servico.duration_minutes, servico.description, servico.status]
+                    );
+                    console.log(`✅ Inserido: ${servico.name}`);
+                } catch (insertError) {
+                    console.log(`⚠️ Erro ao inserir ${servico.name}:`, insertError.message);
+                }
             }
             
             console.log('✅ Serviços inseridos no banco com IDs corretos!');

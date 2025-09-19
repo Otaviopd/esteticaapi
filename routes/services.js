@@ -141,26 +141,75 @@ async function garantirServicosNoBanco() {
 }
 
 // =====================================================
-// POST - FORÇAR CRIAÇÃO DOS SERVIÇOS
+// GET - TESTE SIMPLES
+// =====================================================
+router.get('/test-db', async (req, res) => {
+    try {
+        const result = await query('SELECT NOW() as timestamp, version() as version');
+        res.json({
+            success: true,
+            message: 'Conexão com banco funcionando!',
+            data: result.rows[0]
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// =====================================================
+// POST - FORÇAR CRIAÇÃO DOS SERVIÇOS (ULTRA-SIMPLES)
 // =====================================================
 router.post('/force-create', async (req, res) => {
     try {
         console.log('🔥 FORÇANDO criação dos serviços...');
         
-        await garantirServicosNoBanco();
+        // LIMPAR TABELA
+        await query('DELETE FROM services');
+        console.log('🗑️ Tabela limpa');
         
-        const result = await query('SELECT * FROM services ORDER BY id ASC');
+        // INSERIR UM POR UM
+        const servicos = [
+            { name: 'Limpeza de Pele', category: 'Estética Facial', price: 120.00, duration_minutes: 60, description: 'Limpeza profunda da pele facial', status: 'ativo' },
+            { name: 'Massagem Relaxante', category: 'Massagem', price: 120.00, duration_minutes: 60, description: 'Massagem relaxante para alívio do stress', status: 'ativo' },
+            { name: 'Pós Operatório Domiciliar 10 sessões com laser', category: 'Pós Operatório', price: 1300.00, duration_minutes: 90, description: 'Pacote completo', status: 'ativo' },
+            { name: 'Pós Operatório com Kinesio', category: 'Pós Operatório', price: 1500.00, duration_minutes: 120, description: 'Tratamento com kinesio', status: 'ativo' },
+            { name: 'Pacote Simples - 4 sessões de Massagem', category: 'Pacotes', price: 450.00, duration_minutes: 240, description: 'Pacote simples', status: 'ativo' },
+            { name: 'Pacote Premium - 10 sessões de Massagem', category: 'Pacotes', price: 800.00, duration_minutes: 600, description: 'Pacote premium', status: 'ativo' }
+        ];
+        
+        let inseridos = 0;
+        for (const servico of servicos) {
+            try {
+                const result = await query(
+                    'INSERT INTO services (name, category, price, duration_minutes, description, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+                    [servico.name, servico.category, servico.price, servico.duration_minutes, servico.description, servico.status]
+                );
+                console.log(`✅ Inserido: ${servico.name} (ID: ${result.rows[0].id})`);
+                inseridos++;
+            } catch (insertError) {
+                console.log(`❌ Erro ao inserir ${servico.name}:`, insertError.message);
+            }
+        }
+        
+        const todosServicos = await query('SELECT * FROM services ORDER BY id ASC');
         
         res.json({
             success: true,
-            message: 'Serviços criados/atualizados com sucesso!',
-            servicos: result.rows,
-            total: result.rows.length
+            message: `${inseridos} serviços criados com sucesso!`,
+            servicos: todosServicos.rows,
+            total: todosServicos.rows.length
         });
         
     } catch (error) {
-        console.error('❌ Erro ao forçar criação:', error);
-        res.status(500).json({ error: error.message });
+        console.error('❌ ERRO COMPLETO:', error);
+        res.status(500).json({ 
+            error: 'Erro interno do servidor',
+            detalhes: error.message,
+            stack: error.stack
+        });
     }
 });
 

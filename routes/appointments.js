@@ -157,14 +157,27 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ error: 'Cliente não encontrado' });
         }
         
-        // Verificar se serviço existe
-        const serviceCheck = await query('SELECT id, price FROM services WHERE id = $1', [service_id]);
-        if (serviceCheck.rows.length === 0) {
-            return res.status(400).json({ error: 'Serviço não encontrado' });
+        // SISTEMA DE SERVIÇOS DEFINITIVO - SINCRONIZADO COM services.js
+        const SERVICOS_VALIDOS = {
+            1: { name: 'Limpeza de Pele', price: 120.00 },
+            2: { name: 'Massagem Relaxante', price: 120.00 },
+            3: { name: 'Pós Operatório Domiciliar 10 sessões com laser', price: 1300.00 },
+            4: { name: 'Pós Operatório com Kinesio', price: 1500.00 },
+            5: { name: 'Pacote Simples - 4 sessões de Massagem', price: 450.00 },
+            6: { name: 'Pacote Premium - 10 sessões de Massagem', price: 800.00 }
+        };
+        
+        // Validação definitiva do serviço
+        const servicoValido = SERVICOS_VALIDOS[service_id];
+        if (!servicoValido) {
+            return res.status(400).json({ 
+                error: 'Serviço inválido. IDs válidos: 1-6',
+                servicos_disponiveis: Object.keys(SERVICOS_VALIDOS)
+            });
         }
         
-        // Usar preço do serviço se não informado
-        const finalPrice = total_price || serviceCheck.rows[0].price;
+        // Preço definitivo
+        const finalPrice = total_price || servicoValido.price;
         
         // Verificar conflito de horário
         const conflictCheck = await query(

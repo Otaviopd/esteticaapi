@@ -11,80 +11,48 @@ const router = express.Router();
 // =====================================================
 router.get('/', async (req, res) => {
     try {
-        console.log('🔍 GET /servicos chamado - Retornando serviços fixos');
+        console.log('🔍 GET /servicos chamado');
         
-        // Serviços fixos da Estética Fabiane
-        const servicosFixos = [
-            {
-                id: 1,
-                name: 'Limpeza de Pele',
-                category: 'Estética Facial',
-                price: 120.00,
-                duration_minutes: 60,
-                description: 'Limpeza profunda da pele facial',
-                status: 'ativo',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            },
-            {
-                id: 2,
-                name: 'Massagem Relaxante',
-                category: 'Massagem',
-                price: 120.00,
-                duration_minutes: 60,
-                description: 'Massagem relaxante para alívio do stress',
-                status: 'ativo',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            },
-            {
-                id: 3,
-                name: 'Pós Operatório Domiciliar 10 sessões com laser',
-                category: 'Pós Operatório',
-                price: 1300.00,
-                duration_minutes: 90,
-                description: 'Pacote completo de 10 sessões pós operatório com laser domiciliar',
-                status: 'ativo',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            },
-            {
-                id: 4,
-                name: 'Pós Operatório com Kinesio',
-                category: 'Pós Operatório',
-                price: 1500.00,
-                duration_minutes: 120,
-                description: 'Tratamento pós operatório com aplicação de kinesio',
-                status: 'ativo',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            },
-            {
-                id: 5,
-                name: 'Pacote Simples - 4 sessões de Massagem',
-                category: 'Pacotes',
-                price: 450.00,
-                duration_minutes: 240,
-                description: 'Pacote com 4 sessões de massagem. Benefícios: Reduz medidas, diminui inchaços, estimula circulação, alivia estresse, relaxa o corpo, melhora silhueta. Validade: 60 dias',
-                status: 'ativo',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            },
-            {
-                id: 6,
-                name: 'Pacote Premium - 10 sessões de Massagem',
-                category: 'Pacotes',
-                price: 800.00,
-                duration_minutes: 600,
-                description: 'Pacote premium com 10 sessões de massagem. Benefícios: Reduz medidas, diminui inchaços, estimula circulação, alivia estresse, relaxa o corpo, melhora silhueta. Validade: 60 dias',
-                status: 'ativo',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
+        // Primeiro, verificar se os serviços existem no banco
+        let result = await query('SELECT COUNT(*) as count FROM services');
+        const count = parseInt(result.rows[0].count);
+        
+        console.log('📊 Serviços no banco:', count);
+        
+        // Se não há serviços no banco, inserir os 6 serviços
+        if (count === 0) {
+            console.log('🔨 Inserindo serviços no banco...');
+            
+            const servicosParaInserir = [
+                { name: 'Limpeza de Pele', category: 'Estética Facial', price: 120.00, duration_minutes: 60, description: 'Limpeza profunda da pele facial', status: 'ativo' },
+                { name: 'Massagem Relaxante', category: 'Massagem', price: 120.00, duration_minutes: 60, description: 'Massagem relaxante para alívio do stress', status: 'ativo' },
+                { name: 'Pós Operatório Domiciliar 10 sessões com laser', category: 'Pós Operatório', price: 1300.00, duration_minutes: 90, description: 'Pacote completo de 10 sessões pós operatório com laser domiciliar', status: 'ativo' },
+                { name: 'Pós Operatório com Kinesio', category: 'Pós Operatório', price: 1500.00, duration_minutes: 120, description: 'Tratamento pós operatório com aplicação de kinesio', status: 'ativo' },
+                { name: 'Pacote Simples - 4 sessões de Massagem', category: 'Pacotes', price: 450.00, duration_minutes: 240, description: 'Pacote com 4 sessões de massagem. Benefícios: Reduz medidas, diminui inchaços, estimula circulação, alivia estresse, relaxa o corpo, melhora silhueta. Validade: 60 dias', status: 'ativo' },
+                { name: 'Pacote Premium - 10 sessões de Massagem', category: 'Pacotes', price: 800.00, duration_minutes: 600, description: 'Pacote premium com 10 sessões de massagem. Benefícios: Reduz medidas, diminui inchaços, estimula circulação, alivia estresse, relaxa o corpo, melhora silhueta. Validade: 60 dias', status: 'ativo' }
+            ];
+            
+            // Inserir cada serviço
+            for (const servico of servicosParaInserir) {
+                await query(
+                    `INSERT INTO services (name, category, price, duration_minutes, description, status) 
+                     VALUES ($1, $2, $3, $4, $5, $6)`,
+                    [servico.name, servico.category, servico.price, servico.duration_minutes, servico.description, servico.status]
+                );
             }
-        ];
+            console.log('✅ Serviços inseridos no banco!');
+        }
         
-        console.log('📊 Retornando', servicosFixos.length, 'serviços fixos');
-        res.json(servicosFixos);
+        // Agora buscar todos os serviços do banco
+        result = await query(`
+            SELECT id, name, description, category, duration_minutes, 
+                   price, status, created_at, updated_at
+            FROM services 
+            ORDER BY name ASC
+        `);
+        
+        console.log('📊 Retornando', result.rows.length, 'serviços do banco');
+        res.json(result.rows);
         
     } catch (error) {
         console.error('Erro ao retornar serviços:', error);

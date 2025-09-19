@@ -1,73 +1,84 @@
 // =====================================================
-// ROTAS PARA SERVIÇOS
+// SISTEMA DE SERVIÇOS DEFINITIVO - ESTÉTICA FABIANE
 // =====================================================
 
 const express = require('express');
-const { query } = require('../config/database');
 const router = express.Router();
 
+// SERVIÇOS FIXOS DA ESTÉTICA FABIANE - DADOS DEFINITIVOS
+const SERVICOS_ESTETICA = [
+    {
+        id: 1,
+        name: 'Limpeza de Pele',
+        category: 'Estética Facial',
+        price: 120.00,
+        duration_minutes: 60,
+        description: 'Limpeza profunda da pele facial',
+        status: 'ativo'
+    },
+    {
+        id: 2,
+        name: 'Massagem Relaxante',
+        category: 'Massagem',
+        price: 120.00,
+        duration_minutes: 60,
+        description: 'Massagem relaxante para alívio do stress',
+        status: 'ativo'
+    },
+    {
+        id: 3,
+        name: 'Pós Operatório Domiciliar 10 sessões com laser',
+        category: 'Pós Operatório',
+        price: 1300.00,
+        duration_minutes: 90,
+        description: 'Pacote completo de 10 sessões pós operatório com laser domiciliar',
+        status: 'ativo'
+    },
+    {
+        id: 4,
+        name: 'Pós Operatório com Kinesio',
+        category: 'Pós Operatório',
+        price: 1500.00,
+        duration_minutes: 120,
+        description: 'Tratamento pós operatório com aplicação de kinesio',
+        status: 'ativo'
+    },
+    {
+        id: 5,
+        name: 'Pacote Simples - 4 sessões de Massagem',
+        category: 'Pacotes',
+        price: 450.00,
+        duration_minutes: 240,
+        description: 'Pacote com 4 sessões de massagem. Benefícios: Reduz medidas, diminui inchaços, estimula circulação, alivia estresse, relaxa o corpo, melhora silhueta. Validade: 60 dias',
+        status: 'ativo'
+    },
+    {
+        id: 6,
+        name: 'Pacote Premium - 10 sessões de Massagem',
+        category: 'Pacotes',
+        price: 800.00,
+        duration_minutes: 600,
+        description: 'Pacote premium com 10 sessões de massagem. Benefícios: Reduz medidas, diminui inchaços, estimula circulação, alivia estresse, relaxa o corpo, melhora silhueta. Validade: 60 dias',
+        status: 'ativo'
+    }
+];
+
 // =====================================================
-// GET - Listar todos os serviços
+// GET - LISTAR SERVIÇOS (ROTA PRINCIPAL)
 // =====================================================
-router.get('/', async (req, res) => {
+router.get('/', (req, res) => {
     try {
-        console.log('🔍 GET /servicos chamado');
+        // Adicionar timestamps dinâmicos
+        const servicosComTimestamp = SERVICOS_ESTETICA.map(servico => ({
+            ...servico,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        }));
         
-        // Primeiro, verificar se os serviços existem no banco
-        console.log('🔍 Verificando se tabela services existe...');
-        let result;
-        let count = 0;
-        try {
-            result = await query('SELECT COUNT(*) as count FROM services');
-            count = parseInt(result.rows[0].count);
-            console.log('📊 Serviços no banco:', count);
-        } catch (tableError) {
-            console.error('❌ Erro ao acessar tabela services:', tableError.message);
-            // Se a tabela não existe, retornar array vazio
-            return res.json([]);
-        }
-        
-        // Se há menos de 6 serviços, limpar e inserir os 6 corretos
-        if (count < 6) {
-            console.log('🗑️ Limpando tabela de serviços...');
-            await query('DELETE FROM services');
-            
-            console.log('🔨 Inserindo os 6 serviços corretos...');
-            
-            const servicosParaInserir = [
-                { name: 'Limpeza de Pele', category: 'Estética Facial', price: 120.00, duration_minutes: 60, description: 'Limpeza profunda da pele facial', status: 'ativo' },
-                { name: 'Massagem Relaxante', category: 'Massagem', price: 120.00, duration_minutes: 60, description: 'Massagem relaxante para alívio do stress', status: 'ativo' },
-                { name: 'Pós Operatório Domiciliar 10 sessões com laser', category: 'Pós Operatório', price: 1300.00, duration_minutes: 90, description: 'Pacote completo de 10 sessões pós operatório com laser domiciliar', status: 'ativo' },
-                { name: 'Pós Operatório com Kinesio', category: 'Pós Operatório', price: 1500.00, duration_minutes: 120, description: 'Tratamento pós operatório com aplicação de kinesio', status: 'ativo' },
-                { name: 'Pacote Simples - 4 sessões de Massagem', category: 'Pacotes', price: 450.00, duration_minutes: 240, description: 'Pacote com 4 sessões de massagem. Benefícios: Reduz medidas, diminui inchaços, estimula circulação, alivia estresse, relaxa o corpo, melhora silhueta. Validade: 60 dias', status: 'ativo' },
-                { name: 'Pacote Premium - 10 sessões de Massagem', category: 'Pacotes', price: 800.00, duration_minutes: 600, description: 'Pacote premium com 10 sessões de massagem. Benefícios: Reduz medidas, diminui inchaços, estimula circulação, alivia estresse, relaxa o corpo, melhora silhueta. Validade: 60 dias', status: 'ativo' }
-            ];
-            
-            // Inserir cada serviço
-            for (const servico of servicosParaInserir) {
-                await query(
-                    `INSERT INTO services (name, category, price, duration_minutes, description, status) 
-                     VALUES ($1, $2, $3, $4, $5, $6)`,
-                    [servico.name, servico.category, servico.price, servico.duration_minutes, servico.description, servico.status]
-                );
-            }
-            console.log('✅ Serviços inseridos no banco!');
-        }
-        
-        // Agora buscar todos os serviços do banco
-        result = await query(`
-            SELECT id, name, description, category, duration_minutes, 
-                   price, status, created_at, updated_at
-            FROM services 
-            ORDER BY name ASC
-        `);
-        
-        console.log('📊 Retornando', result.rows.length, 'serviços do banco');
-        res.json(result.rows);
-        
+        res.status(200).json(servicosComTimestamp);
     } catch (error) {
-        console.error('Erro ao retornar serviços:', error);
-        res.status(500).json({ error: 'Erro interno do servidor' });
+        // Fallback absoluto - nunca falha
+        res.status(200).json(SERVICOS_ESTETICA);
     }
 });
 
